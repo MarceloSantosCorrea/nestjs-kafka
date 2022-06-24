@@ -4,36 +4,37 @@ services:
   app:
     build: .
     entrypoint: wait-for mysql:3306 -t 40 -- sh -c 'npm install && npm run start:dev'
-    # command: "sh -c 'npm install && npm run start:dev'"
     ports:
       - 3000:3000
     volumes:
       - .:/home/node/app
+    networks:
+      - app-network
   
   mysql:
     image: mysql/mysql-server:8.0
     container_name: mysql
     tty: true
     environment:
-      MYSQL_ROOT_PASSWORD: 'nestjs'
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
       MYSQL_ROOT_HOST: "%"
-      MYSQL_DATABASE: 'nestjs'
-      MYSQL_USER: 'nestjs'
-      MYSQL_PASSWORD: 'nestjs'
+      MYSQL_DATABASE: '${DB_DATABASE}'
+      MYSQL_USER: '${DB_USERNAME}'
+      MYSQL_PASSWORD: '${DB_PASSWORD}'
       MYSQL_ALLOW_EMPTY_PASSWORD: 1
     volumes:
       - mysql:/var/lib/mysql
     ports:
-      - "3306:3306"
-    depends_on:
-      - kafka
+      - "${DB_PORT}:3306"
+    networks:
+      - app-network
   
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
-    extra_hosts:
-      - "docker.for.mac.host.internal:172.17.0.1"
+    networks:
+      - app-network
 
   kafka:
     image: confluentinc/cp-kafka:latest
@@ -49,8 +50,8 @@ services:
       KAFKA_LISTENERS: INTERNAL://:9092
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT
-    extra_hosts:
-      - "docker.for.mac.host.internal:172.17.0.1"
+    networks:
+      - app-network
 
   control-center:
     image: confluentinc/cp-enterprise-control-center:6.0.1
@@ -63,9 +64,12 @@ services:
       CONTROL_CENTER_BOOTSTRAP_SERVERS: 'kafka:9092'
       CONTROL_CENTER_REPLICATION_FACTOR: 1
       PORT: 9021
-    extra_hosts:
-      - "docker.for.mac.host.internal:172.17.0.1"
+    networks:
+      - app-network
       
+networks:
+  app-network:
+    driver: bridge
 volumes:
   mysql:
     driver: local

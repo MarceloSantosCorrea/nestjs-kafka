@@ -8,15 +8,17 @@ import { ClientKafka, ClientsModule, Transport } from '@nestjs/microservices';
 @Module({
   imports: [
     SequelizeModule.forFeature([Order]),
-    ClientsModule.register([
+    ClientsModule.registerAsync([
       {
         name: 'KAFKA_SERVICE',
-        transport: Transport.KAFKA,
-        options: {
-          client: {
-            brokers: ['kafka:9092'],
+        useFactory: () => ({
+          transport: Transport.KAFKA,
+          options: {
+            client: {
+              brokers: [process.env.KAFKA_BROKER],
+            },
           },
-        },
+        }),
       },
     ]),
   ],
